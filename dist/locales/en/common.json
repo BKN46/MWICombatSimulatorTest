@@ -18,6 +18,7 @@
         "title": "Controls",
         "battleQueue": "BattleQueue?",
         "startSimulation": "Start Simulation",
+        "startOptimization": "Trigger Optimization",
         "calcCoffeeBenefits": "Calc Coffee Benefits",
         "coffeeResults": "Coffee Results",
         "calcSpecialAbilityBenefits": "Calc Special Ability Benefits",

@@ -1684,9 +1684,11 @@ const ONE_SECOND = 1e9;
 const ONE_HOUR = 60 * 60 * ONE_SECOND;
 
 let buttonStartSimulation = document.getElementById("buttonStartSimulation");
+let buttonStartOptimization = document.getElementById("buttonStartOptimization");
 let progressbar = document.getElementById("simulationProgressBar");
 
 let worker = new Worker(new URL(/* worker import */ __webpack_require__.p + __webpack_require__.u("src_worker_js"), __webpack_require__.b));
+let optimizationWorker = new Worker(new URL(/* worker import */ __webpack_require__.p + __webpack_require__.u("src_combatsimulator_optimizer_js"), __webpack_require__.b));
 
 let player = new _combatsimulator_player_js__WEBPACK_IMPORTED_MODULE_1__["default"]();
 let selectedPlayers = [];
@@ -1719,6 +1721,8 @@ worker.onmessage = function (event) {
             progressbar.style.width = "100%";
             progressbar.innerHTML = "100%";
             //console.log("SIM RESULTS: ", event.data.simResult);
+            saveSimulationResult(event.data.simResult);
+            getSimulationResults();
             showSimulationResult(event.data.simResult);
             updateContent();
             buttonStartSimulation.disabled = false;
@@ -1740,6 +1744,16 @@ worker.onmessage = function (event) {
             buttonStartSimulation.disabled = false;
             document.getElementById('buttonShowAllSimData').style.display = 'block';
             break;
+    }
+};
+
+optimizationWorker.onmessage = function (event) {
+    switch (event.data.type) {
+        case "progress":
+            let progress = Math.floor(100 * event.data.progress);
+            progressbar.style.width = progress + "%";
+            progressbar.innerHTML = progress + "%";
+            break
     }
 };
 
@@ -2624,6 +2638,48 @@ function initDamageDoneTaken() {
         document.getElementById("simulationResultTotalDamageTaken").insertAdjacentElement('afterend', createDamageTakenAccordion(i));
     }
 }
+
+
+function saveSimulationResult(simResult) {
+    let simResults = sessionStorage.getItem("simResults");
+    if (simResults) {
+        simResults = JSON.parse(simResults);
+    } else {
+        simResults = [];
+    }
+    simResults.push(simResult);
+    sessionStorage.setItem("simResults", JSON.stringify(simResults));
+}
+
+
+function getSimulationResults() {
+    let simResults = sessionStorage.getItem("simResults");
+    if (simResults) {
+        simResults = JSON.parse(simResults);
+    } else {
+        simResults = [];
+    }
+
+    let selectElement = document.getElementById("selectResultView");
+    for (let i = 0; i < simResults.length; i++) {
+        let opt = new Option(`${simResults[i].simulationName} (${simResults[i].zoneName})`, simResults[i].simulationName);
+        // opt.setAttribute("data-i18n", "actionNames." + simResults[i].zoneName);
+        selectElement.add(opt);
+    }
+
+    selectElement.addEventListener("change", (event) => {
+        let simResults = JSON.parse(sessionStorage.getItem("simResults"));
+        let selectedOption = event.target.value;
+        let simResult = simResults.find((result) => result.simulationName === selectedOption);
+        showSimulationResult(simResult);
+        updateContent();
+    });
+
+    return simResults;
+}
+
+getSimulationResults()
+
 
 function showSimulationResult(simResult) {
     currentSimResults = simResult;
@@ -3857,11 +3913,34 @@ function initSimulationControls() {
             return;
         }
         buttonStartSimulation.disabled = true;
-        startSimulation(selectedPlayers);
+        startSimulation(selectedPlayers, false);
+    });
+
+    buttonStartOptimization.addEventListener("click", (event) => {
+        let invalidElements = document.querySelectorAll(":invalid");
+        if (invalidElements.length > 0) {
+            invalidElements.forEach((element) => element.reportValidity());
+            return;
+        }
+        savePreviousPlayer(currentPlayerTabId);
+
+        const checkboxes = document.querySelectorAll('.player-checkbox');
+        selectedPlayers = [];
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                const playerNumber = parseInt(checkbox.id.replace('player', ''));
+                selectedPlayers.push(playerNumber);
+            }
+        });
+        if (selectedPlayers.length === 0) {
+            alert("You need to select at least one player to sim.");
+            return;
+        }
+        startSimulation(selectedPlayers, true);
     });
 }
 
-function startSimulation(selectedPlayers) {
+function startSimulation(selectedPlayers, doOptimization) {
     let playersToSim = [];
     for (let j = 1; j < 6; j++) {
         if (selectedPlayers.includes(j)) {
@@ -3918,7 +3997,13 @@ function startSimulation(selectedPlayers) {
             zoneHrid: zoneHrid,
             simulationTimeLimit: simulationTimeLimit,
         };
-        worker.postMessage(workerMessage);
+        if (doOptimization) {
+            workerMessage.type = "start_optimization";
+            workerMessage.optimizeTarget = "EPH";
+            optimizationWorker.postMessage(workerMessage);
+        } else {
+            worker.postMessage(workerMessage);            
+        }
     } else {
         let zoneHrids = Object.values(_combatsimulator_data_actionDetailMap_json__WEBPACK_IMPORTED_MODULE_12__)
             .filter((action) => action.type == "/action_types/combat" && action.category != "/action_categories/combat/dungeons" && action.combatZoneInfo.fightInfo.battlesPerBoss === 10)

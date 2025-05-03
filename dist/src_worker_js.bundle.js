@@ -152,7 +152,7 @@ onmessage = async function (event) {
 /******/ 	__webpack_require__.x = () => {
 /******/ 		// Load entry module and return exports
 /******/ 		// This entry module depends on other loaded chunks and execution need to be delayed
-/******/ 		var __webpack_exports__ = __webpack_require__.O(undefined, ["vendors-node_modules_heap-js_dist_heap-js_es5_js","src_combatsimulator_combatSimulator_js"], () => (__webpack_require__("./src/worker.js")))
+/******/ 		var __webpack_exports__ = __webpack_require__.O(undefined, ["vendors-node_modules_heap-js_dist_heap-js_es5_js","src_combatsimulator_player_js","src_combatsimulator_combatSimulator_js"], () => (__webpack_require__("./src/worker.js")))
 /******/ 		__webpack_exports__ = __webpack_require__.O(__webpack_exports__);
 /******/ 		return __webpack_exports__;
 /******/ 	};
@@ -320,10 +320,7 @@ onmessage = async function (event) {
 /******/ 	(() => {
 /******/ 		var next = __webpack_require__.x;
 /******/ 		__webpack_require__.x = () => {
-/******/ 			return Promise.all([
-/******/ 				__webpack_require__.e("vendors-node_modules_heap-js_dist_heap-js_es5_js"),
-/******/ 				__webpack_require__.e("src_combatsimulator_combatSimulator_js")
-/******/ 			]).then(next);
+/******/ 			return Promise.all(["vendors-node_modules_heap-js_dist_heap-js_es5_js","src_combatsimulator_player_js","src_combatsimulator_combatSimulator_js"].map(__webpack_require__.e, __webpack_require__)).then(next);
 /******/ 		};
 /******/ 	})();
 /******/ 	
