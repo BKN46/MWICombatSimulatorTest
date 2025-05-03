@@ -1,5 +1,7 @@
 class SimResult {
     constructor(zoneName, numberOfPlayers) {
+        this.simulationTime = new Date();
+        this.simulationName = `${this.simulationTime.getHours()}:${this.simulationTime.getMinutes()}:${this.simulationTime.getSeconds()}`;
         this.deaths = {};
         this.experienceGained = {};
         this.encounters = 0;

@@ -55,6 +55,8 @@ worker.onmessage = function (event) {
             progressbar.style.width = "100%";
             progressbar.innerHTML = "100%";
             //console.log("SIM RESULTS: ", event.data.simResult);
+            saveSimulationResult(event.data.simResult);
+            getSimulationResults();
             showSimulationResult(event.data.simResult);
             updateContent();
             buttonStartSimulation.disabled = false;
@@ -960,6 +962,48 @@ function initDamageDoneTaken() {
         document.getElementById("simulationResultTotalDamageTaken").insertAdjacentElement('afterend', createDamageTakenAccordion(i));
     }
 }
+
+
+function saveSimulationResult(simResult) {
+    let simResults = sessionStorage.getItem("simResults");
+    if (simResults) {
+        simResults = JSON.parse(simResults);
+    } else {
+        simResults = [];
+    }
+    simResults.push(simResult);
+    sessionStorage.setItem("simResults", JSON.stringify(simResults));
+}
+
+
+function getSimulationResults() {
+    let simResults = sessionStorage.getItem("simResults");
+    if (simResults) {
+        simResults = JSON.parse(simResults);
+    } else {
+        simResults = [];
+    }
+
+    let selectElement = document.getElementById("selectResultView");
+    for (let i = 0; i < simResults.length; i++) {
+        let opt = new Option(`${simResults[i].simulationName} (${simResults[i].zoneName})`, simResults[i].simulationName);
+        // opt.setAttribute("data-i18n", "actionNames." + simResults[i].zoneName);
+        selectElement.add(opt);
+    }
+
+    selectElement.addEventListener("change", (event) => {
+        let simResults = JSON.parse(sessionStorage.getItem("simResults"));
+        let selectedOption = event.target.value;
+        let simResult = simResults.find((result) => result.simulationName === selectedOption);
+        showSimulationResult(simResult);
+        updateContent();
+    });
+
+    return simResults;
+}
+
+getSimulationResults()
+
 
 function showSimulationResult(simResult) {
     currentSimResults = simResult;
