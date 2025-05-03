@@ -673,7 +673,10 @@
                         </div>
                         <div class="row">
                             <label>这是BKN46的测试分支</label>
-                            <label>当前优化包含：全地图多线程优化、空蓝比例计数</label>
+                            <label>当前优化(区分于shykai)包含：</label>
+                            <label>全地图多线程优化、空蓝比例计数、</label>
+                            <label>模拟结果存档sessionStorage、</label>
+                            <label>Trigger自动优化(调试中,需进入console查看结果)</label>
                         </div>
                         <!-- #endregion -->
                     </div>
@@ -1320,6 +1323,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="buttonStartOptimization" data-bs-dismiss="modal" data-i18n="common:controls.startOptimization">Trigger Optimization</button>
                     <button type="button" class="btn btn-primary" id="buttonStartSimulation" data-bs-dismiss="modal" data-i18n="common:controls.startSimulation">Start Simulation</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common:controls.close">Close</button>
                 </div>

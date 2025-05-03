@@ -1,5 +1,6 @@
 class SimResult {
-    constructor(zoneName, numberOfPlayers) {
+    constructor(zoneName, numberOfPlayers, simId) {
+        this.simId = simId ? simId : Math.floor(Math.random() * 1e9).toString();
         this.simulationTime = new Date();
         this.simulationName = `${this.simulationTime.getHours()}:${this.simulationTime.getMinutes()}:${this.simulationTime.getSeconds()}`;
         this.deaths = {};

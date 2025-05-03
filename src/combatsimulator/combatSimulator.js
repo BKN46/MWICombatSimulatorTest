@@ -34,12 +34,13 @@ const RESTART_INTERVAL = 15 * ONE_SECOND;
 let tempDungeonCount = 0;
 
 class CombatSimulator extends EventTarget {
-    constructor(players, zone) {
+    constructor(players, zone, simId) {
         super();
         this.players = players;
         this.zone = zone;
         this.eventQueue = new EventQueue();
-        this.simResult = new SimResult(zone.hrid, players.length);
+        this.simId = simId ? simId : Math.floor(Math.random() * 1e9).toString();
+        this.simResult = new SimResult(zone.hrid, players.length, simId);
         this.allPlayersDead = false;
     }
 
@@ -128,7 +129,7 @@ class CombatSimulator extends EventTarget {
         this.tempDungeonCount = 0;
         this.simulationTime = 0;
         this.eventQueue.clear();
-        this.simResult = new SimResult(this.zone.hrid, this.players.length);
+        this.simResult = new SimResult(this.zone.hrid, this.players.length, this.simId);
     }
 
     async processEvent(event) {
@@ -1305,7 +1306,7 @@ onmessage = async function (event) {
                     players.push(currentPlayer);
                 }
 
-                let simulator = new CombatSimulator(players, zone);
+                let simulator = new CombatSimulator(players, zone, event.data.simId);
 
                 simulator.addEventListener("progress", (event) => {
                     this.postMessage({

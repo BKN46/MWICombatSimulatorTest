@@ -20,9 +20,11 @@ const ONE_SECOND = 1e9;
 const ONE_HOUR = 60 * 60 * ONE_SECOND;
 
 let buttonStartSimulation = document.getElementById("buttonStartSimulation");
+let buttonStartOptimization = document.getElementById("buttonStartOptimization");
 let progressbar = document.getElementById("simulationProgressBar");
 
 let worker = new Worker(new URL("worker.js", import.meta.url));
+let optimizationWorker = new Worker(new URL("combatsimulator/optimizer.js", import.meta.url));
 
 let player = new Player();
 let selectedPlayers = [];
@@ -78,6 +80,16 @@ worker.onmessage = function (event) {
             buttonStartSimulation.disabled = false;
             document.getElementById('buttonShowAllSimData').style.display = 'block';
             break;
+    }
+};
+
+optimizationWorker.onmessage = function (event) {
+    switch (event.data.type) {
+        case "progress":
+            let progress = Math.floor(100 * event.data.progress);
+            progressbar.style.width = progress + "%";
+            progressbar.innerHTML = progress + "%";
+            break
     }
 };
 
@@ -2237,11 +2249,34 @@ function initSimulationControls() {
             return;
         }
         buttonStartSimulation.disabled = true;
-        startSimulation(selectedPlayers);
+        startSimulation(selectedPlayers, false);
+    });
+
+    buttonStartOptimization.addEventListener("click", (event) => {
+        let invalidElements = document.querySelectorAll(":invalid");
+        if (invalidElements.length > 0) {
+            invalidElements.forEach((element) => element.reportValidity());
+            return;
+        }
+        savePreviousPlayer(currentPlayerTabId);
+
+        const checkboxes = document.querySelectorAll('.player-checkbox');
+        selectedPlayers = [];
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                const playerNumber = parseInt(checkbox.id.replace('player', ''));
+                selectedPlayers.push(playerNumber);
+            }
+        });
+        if (selectedPlayers.length === 0) {
+            alert("You need to select at least one player to sim.");
+            return;
+        }
+        startSimulation(selectedPlayers, true);
     });
 }
 
-function startSimulation(selectedPlayers) {
+function startSimulation(selectedPlayers, doOptimization) {
     let playersToSim = [];
     for (let j = 1; j < 6; j++) {
         if (selectedPlayers.includes(j)) {
@@ -2298,7 +2333,13 @@ function startSimulation(selectedPlayers) {
             zoneHrid: zoneHrid,
             simulationTimeLimit: simulationTimeLimit,
         };
-        worker.postMessage(workerMessage);
+        if (doOptimization) {
+            workerMessage.type = "start_optimization";
+            workerMessage.optimizeTarget = "EPH";
+            optimizationWorker.postMessage(workerMessage);
+        } else {
+            worker.postMessage(workerMessage);            
+        }
     } else {
         let zoneHrids = Object.values(actionDetailMap)
             .filter((action) => action.type == "/action_types/combat" && action.category != "/action_categories/combat/dungeons" && action.combatZoneInfo.fightInfo.battlesPerBoss === 10)
