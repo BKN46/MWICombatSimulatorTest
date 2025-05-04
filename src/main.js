@@ -977,6 +977,7 @@ function initDamageDoneTaken() {
 
 
 function saveSimulationResult(simResult) {
+    const saveLimit = 10;
     let simResults = sessionStorage.getItem("simResults");
     if (simResults) {
         simResults = JSON.parse(simResults);
@@ -984,7 +985,16 @@ function saveSimulationResult(simResult) {
         simResults = [];
     }
     simResults.push(simResult);
-    sessionStorage.setItem("simResults", JSON.stringify(simResults));
+    if (simResults.length > saveLimit) {
+        simResults.shift();
+    }
+
+    try {
+        sessionStorage.setItem("simResults", JSON.stringify(simResults));
+    } catch (error) {
+        simResults.shift();
+        sessionStorage.setItem("simResults", JSON.stringify(simResults));
+    }
 }
 
 
