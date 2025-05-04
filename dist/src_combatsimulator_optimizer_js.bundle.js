@@ -30,7 +30,7 @@ const OPTIMIZABLE_TARGETS = {
 }
 
 async function triggerOptimizer(players, zoneHrid, optimizeTarget, baseSimulationTime, learningRate){
-    const [triggersMap, args] = getPlayersOptimizableTriggersMap(players);
+    const [triggersMap, args] = getPlayersOptimizableTriggersMap(players, ["abilities"]);
     if (!triggersMap || triggersMap.length == 0) {
         console.log("No optimizable triggers found.");
         return null;
@@ -155,10 +155,10 @@ function tweakPlayersTrigger(players, playerIndex, itemIndex, triggerIndex, delt
     return players;
 }
 
-function getPlayersOptimizableTriggersMap(players) {
+function getPlayersOptimizableTriggersMap(players, types) {
     // Get all triggers that can be optimized
     // and return an array of [[playerIndex, itemIndex, triggerIndex, type, delta]]
-    const types = ["abilities", "food", "drinks"];
+    types = types ? types : ["abilities", "food", "drinks"];
     let triggersMap = [];
     let args = [];
 
