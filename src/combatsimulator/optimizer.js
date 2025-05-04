@@ -17,17 +17,17 @@ const OPTIMIZABLE_TARGETS = {
     "noRngProfit": (simResult) => simResult.targetValue,
 }
 
-async function triggerOptimizer(players, zoneHrid, optimizeTarget){
+async function triggerOptimizer(players, zoneHrid, optimizeTarget, baseSimulationTime, learningRate){
     const [triggersMap, args] = getPlayersOptimizableTriggersMap(players);
     if (!triggersMap || triggersMap.length == 0) {
         console.log("No optimizable triggers found.");
         return null;
     }
-    const result = await adamOptimizer(players, zoneHrid, triggersMap, args, optimizeTarget);
+    const result = await adamOptimizer(players, zoneHrid, triggersMap, args, optimizeTarget, baseSimulationTime, learningRate);
     return result;
 }
 
-async function adamOptimizer(players, zoneHrid, triggerMap, args, optimizeTarget="EPH", baseSimulationTime=24, learningRate = 1, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8, maxIterations = 1000) {
+async function adamOptimizer(players, zoneHrid, triggerMap, args, optimizeTarget="EPH", baseSimulationTime=24, learningRate = 1, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8, maxIterations = 5000) {
     let m = new Array(args.length).fill(0);
     let v = new Array(args.length).fill(0);
     let t = 0;
@@ -199,7 +199,9 @@ onmessage = async function (event) {
             let playersData = event.data.players;
             let zoneHrid = event.data.zoneHrid;
             let optimizeTarget = event.data.optimizeTarget;
-            let triggerResults = await triggerOptimizer(playersData, zoneHrid, optimizeTarget);
+            let baseOptimizationTime = Math.floor(event.data.simulationTimeLimit / ONE_HOUR);
+            let learningRate = event.data.learningRate;
+            let triggerResults = await triggerOptimizer(playersData, zoneHrid, optimizeTarget, baseOptimizationTime, learningRate);
             break;
     }
 }

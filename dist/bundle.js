@@ -3898,7 +3898,7 @@ document.querySelectorAll('#playerTab .nav-link').forEach(tab => {
 
 function initSimulationControls() {
     let simulationTimeInput = document.getElementById("inputSimulationTime");
-    simulationTimeInput.value = 100;
+    simulationTimeInput.value = 24;
 
     buttonStartSimulation.addEventListener("click", (event) => {
         let invalidElements = document.querySelectorAll(":invalid");
@@ -4010,6 +4010,8 @@ function startSimulation(selectedPlayers, doOptimization) {
         if (doOptimization) {
             workerMessage.type = "start_optimization";
             workerMessage.optimizeTarget = "EPH";
+            let optimizeLearningRate = Number(document.getElementById("inputOptimizeLearningRate").value);
+            workerMessage.learningRate = optimizeLearningRate;
             optimizationWorker.postMessage(workerMessage);
         } else {
             worker.postMessage(workerMessage);            
