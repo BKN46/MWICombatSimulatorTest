@@ -2361,7 +2361,6 @@ function initSimulationControls() {
             worker.worker.terminate();
         }
         customAlert("Worker Terminated", "warning")
-        buttonStopSimulation.disabled = true;
         buttonStartSimulation.disabled = false;
         buttonStartOptimization.disabled = false;
         buttonStopSimulation.style.display = 'none';
