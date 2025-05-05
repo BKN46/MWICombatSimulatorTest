@@ -88,9 +88,11 @@ function mainWorkerOnMessage(event) {
             updateContent();
             buttonStartSimulation.disabled = false;
             document.getElementById('buttonShowAllSimData').style.display = 'block';
+            buttonStopSimulation.style.display = 'none';
             if (workerIndex !== -1) {
                 workerPool[workerIndex].worker.terminate();
             }
+            customAlert(`Simulation done`, "success");
             break;
     }
 };
