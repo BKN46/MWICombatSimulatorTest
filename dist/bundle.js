@@ -13514,7 +13514,7 @@ function startSimulation(selectedPlayers, doOptimization) {
                 worker: optimizationWorker,
             });
         } else {
-            const worker = new Worker(new URL(/* worker import */ __webpack_require__.p + __webpack_require__.u("src_worker_js"), __webpack_require__.b)); 
+            const worker = new Worker(new URL(/* worker import */ __webpack_require__.p + __webpack_require__.u("src_worker_js-_dd000"), __webpack_require__.b)); 
             worker.onmessage = mainWorkerOnMessage;
             worker.postMessage(workerMessage);
             customAlert("Simulation task Created", "info")
@@ -13530,11 +13530,19 @@ function startSimulation(selectedPlayers, doOptimization) {
             .map(action => action.hrid);
         let workerMessage = {
             type: "start_simulation_all_zones",
+            workerId: Math.floor(Math.random() * 1e9).toString(),
             players: playersToSim,
             zones: zoneHrids,
             simulationTimeLimit: simulationTimeLimit,
         };
+        const worker = new Worker(new URL(/* worker import */ __webpack_require__.p + __webpack_require__.u("src_worker_js-_dd001"), __webpack_require__.b)); 
+        worker.onmessage = mainWorkerOnMessage;
         worker.postMessage(workerMessage);
+        customAlert("Simulation task Created", "info")
+        workerPool.push({
+            workerId: workerMessage.workerId,
+            worker: worker,
+        });
     }
 }
 

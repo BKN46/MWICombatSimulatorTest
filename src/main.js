@@ -2455,11 +2455,19 @@ function startSimulation(selectedPlayers, doOptimization) {
             .map(action => action.hrid);
         let workerMessage = {
             type: "start_simulation_all_zones",
+            workerId: Math.floor(Math.random() * 1e9).toString(),
             players: playersToSim,
             zones: zoneHrids,
             simulationTimeLimit: simulationTimeLimit,
         };
+        const worker = new Worker(new URL("worker.js", import.meta.url)); 
+        worker.onmessage = mainWorkerOnMessage;
         worker.postMessage(workerMessage);
+        customAlert("Simulation task Created", "info")
+        workerPool.push({
+            workerId: workerMessage.workerId,
+            worker: worker,
+        });
     }
 }
 
