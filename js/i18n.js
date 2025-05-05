@@ -9335,6 +9335,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 element.textContent = i18next.t(key);
             }
         });
+
+        // 更新所有结构性文本
+        document.querySelectorAll('[data-i18n-options]').forEach(function (element) {
+            const key = element.getAttribute('data-i18n');
+            if (key) {
+                const options = JSON.parse(element.getAttribute('data-i18n-options'));
+                const structure = i18next.t(key);
+                const translatedText = structure.replace(/__(.*?)__/g, function (match, i) {
+                    match = match.replace(/__/g, '');
+                    if (match && options[match]) {
+                        if (options[match].startsWith('$t')) {
+                            return i18next.t(options[match].replace('$t(', '').replace(')', ''));
+                        }
+                        return options[match];
+                    } else {s
+                        return '';
+                    }
+                });
+                element.textContent = translatedText;
+            }
+        });
     }
 
     // 添加语言切换器
@@ -9371,3 +9392,5 @@ document.addEventListener('DOMContentLoaded', function () {
         document.body.appendChild(switcherContainer);
     }
 });
+
+export default Oa;

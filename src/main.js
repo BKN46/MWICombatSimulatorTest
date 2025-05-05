@@ -15,16 +15,17 @@ import combatMonsterDetailMap from "./combatsimulator/data/combatMonsterDetailMa
 import damageTypeDetailMap from "./combatsimulator/data/damageTypeDetailMap.json";
 import combatStyleDetailMap from "./combatsimulator/data/combatStyleDetailMap.json";
 import openableLootDropMap from "./combatsimulator/data/openableLootDropMap.json";
+import translationMap from "../js/i18n.js";
 
 const ONE_SECOND = 1e9;
 const ONE_HOUR = 60 * 60 * ONE_SECOND;
 
 let buttonStartSimulation = document.getElementById("buttonStartSimulation");
 let buttonStartOptimization = document.getElementById("buttonStartOptimization");
+let buttonStopSimulation = document.getElementById("buttonStopSimulation");
 let progressbar = document.getElementById("simulationProgressBar");
 
-let worker = new Worker(new URL("worker.js", import.meta.url));
-let optimizationWorker = new Worker(new URL("combatsimulator/optimizer.js", import.meta.url));
+let workerPool = [];
 
 let player = new Player();
 let selectedPlayers = [];
@@ -51,7 +52,10 @@ window.noRngProfit = 0;
 
 // #region Worker
 
-worker.onmessage = function (event) {
+function mainWorkerOnMessage(event) {
+    const workerId = event.data.workerId;
+    const workerIndex = workerPool.findIndex(worker => worker.workerId === workerId);
+        
     switch (event.data.type) {
         case "simulation_result":
             progressbar.style.width = "100%";
@@ -63,6 +67,11 @@ worker.onmessage = function (event) {
             updateContent();
             buttonStartSimulation.disabled = false;
             document.getElementById('buttonShowAllSimData').style.display = 'none';
+            buttonStopSimulation.style.display = 'none';
+            if (workerIndex !== -1) {
+                workerPool[workerIndex].worker.terminate();
+            }
+            customAlert(`Simulation done`, "success");
             break;
         case "simulation_progress":
             let progress = Math.floor(100 * event.data.progress);
@@ -79,11 +88,14 @@ worker.onmessage = function (event) {
             updateContent();
             buttonStartSimulation.disabled = false;
             document.getElementById('buttonShowAllSimData').style.display = 'block';
+            if (workerIndex !== -1) {
+                workerPool[workerIndex].worker.terminate();
+            }
             break;
     }
 };
 
-optimizationWorker.onmessage = function (event) {
+function optimizationWorkerOnMessage(event) {
     switch (event.data.type) {
         case "progress":
             let progress = Math.floor(100 * event.data.progress);
@@ -92,6 +104,25 @@ optimizationWorker.onmessage = function (event) {
             break
     }
 };
+// #endregion
+
+// #region Alert
+
+let alertZone = document.getElementById("alertZone");
+
+function customAlert(message, alertType='success') {
+    // Alert types: success, info, warning, danger
+    const alertId = "alert_" + Date.now();
+    const alertElement = createElement("div", `alert alert-${alertType} alert-dismissible fade show`, message, alertId);
+    alertZone.appendChild(alertElement);
+
+    setTimeout(() => {
+        let alertElement = document.getElementById(alertId);
+        if (alertElement) {
+            alertElement.remove();
+        }
+    }, 3000);
+}
 
 // #endregion
 
@@ -1037,8 +1068,12 @@ function getSimulationResults() {
 
     let selectElement = document.getElementById("selectResultView");
     for (let i = 0; i < simResults.length; i++) {
-        let opt = new Option(`${simResults[i].simulationName} (${simResults[i].zoneName})`, simResults[i].simulationName);
-        // opt.setAttribute("data-i18n", "actionNames." + simResults[i].zoneName);
+        // TODO: Better localization calling for this
+        const zoneName = translationMap['zh']['translation'].actionNames[simResults[i].zoneName];
+        const saveName = `Save ${simResults[i].simulationName} ${zoneName}`;
+        let opt = new Option(saveName, simResults[i].simulationName);
+        // opt.setAttribute("data-i18n", "common:simulationResults.resultSaveName");
+        // opt.setAttribute("data-i18n-options", JSON.stringify({ time: simResults[i].simulationName, zone: `$t(actionNames.${simResults[i].zoneName})` }));
         selectElement.add(opt);
     }
 
@@ -2287,7 +2322,8 @@ function initSimulationControls() {
             alert("You need to select at least one player to sim.");
             return;
         }
-        buttonStartSimulation.disabled = true;
+        // buttonStartSimulation.disabled = true;
+        buttonStopSimulation.style.display = 'block';
         startSimulation(selectedPlayers, false);
     });
 
@@ -2311,7 +2347,22 @@ function initSimulationControls() {
             alert("You need to select at least one player to sim.");
             return;
         }
+        buttonStopSimulation.style.display = 'block';
         startSimulation(selectedPlayers, true);
+    });
+
+    buttonStopSimulation.style.display = 'none';
+    buttonStopSimulation.addEventListener("click", (event) => {
+        progressbar.style.width = "0%";
+        progressbar.innerHTML = "0%";
+        for (let worker of workerPool) {
+            worker.worker.terminate();
+        }
+        customAlert("Worker Terminated", "warning")
+        buttonStopSimulation.disabled = true;
+        buttonStartSimulation.disabled = false;
+        buttonStartOptimization.disabled = false;
+        buttonStopSimulation.style.display = 'none';
     });
 }
 
@@ -2361,6 +2412,7 @@ function startSimulation(selectedPlayers, doOptimization) {
     let dungeonSelect = document.getElementById("selectDungeon");
     let simulationTimeInput = document.getElementById("inputSimulationTime");
     let simulationTimeLimit = Number(simulationTimeInput.value) * ONE_HOUR;
+    buttonStopSimulation.style.display = 'block';
     if (!simAllZonesToggle.checked) {
         let zoneHrid = zoneSelect.value;
         if (simDungeonToggle.checked) {
@@ -2368,6 +2420,7 @@ function startSimulation(selectedPlayers, doOptimization) {
         }
         let workerMessage = {
             type: "start_simulation",
+            workerId: Math.floor(Math.random() * 1e9).toString(),
             players: playersToSim,
             zoneHrid: zoneHrid,
             simulationTimeLimit: simulationTimeLimit,
@@ -2377,9 +2430,23 @@ function startSimulation(selectedPlayers, doOptimization) {
             workerMessage.optimizeTarget = "EPH";
             let optimizeLearningRate = Number(document.getElementById("inputOptimizeLearningRate").value);
             workerMessage.learningRate = optimizeLearningRate;
+            const optimizationWorker = new Worker(new URL("combatsimulator/optimizer.js", import.meta.url));
+            optimizationWorker.onmessage = optimizationWorkerOnMessage;
             optimizationWorker.postMessage(workerMessage);
+            customAlert("Optimization task Created", "info")
+            workerPool.push({
+                workerId: workerMessage.workerId,
+                worker: optimizationWorker,
+            });
         } else {
-            worker.postMessage(workerMessage);            
+            const worker = new Worker(new URL("worker.js", import.meta.url)); 
+            worker.onmessage = mainWorkerOnMessage;
+            worker.postMessage(workerMessage);
+            customAlert("Simulation task Created", "info")
+            workerPool.push({
+                workerId: workerMessage.workerId,
+                worker: worker,
+            });
         }
     } else {
         let zoneHrids = Object.values(actionDetailMap)

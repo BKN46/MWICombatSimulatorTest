@@ -18,6 +18,7 @@
         "title": "Controls",
         "battleQueue": "BattleQueue?",
         "startSimulation": "Start Simulation",
+        "stopSimulation": "Stop Simulation",
         "startOptimization": "Trigger Optimization",
         "calcCoffeeBenefits": "Calc Coffee Benefits",
         "coffeeResults": "Coffee Results",
@@ -44,6 +45,8 @@
     "noRNGDrops": "No RNG Drops",
     "simulationResults": {
         "title": "Simulation Results",
+        "resultSaveName": "Save __time__ __zone__",
+        "simulationDone": "Simulation Done",
         "killPerHour": "Kills Per Hour",
         "encounters": "Encounters",
         "timeSpentOnBoss": "Time Spent On Boss",

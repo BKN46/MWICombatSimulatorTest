@@ -54,7 +54,7 @@ onmessage = async function (event) {
 
             try {
                 let simResult = await combatSimulator.simulate(simulationTimeLimit);
-                this.postMessage({ type: "simulation_result", simResult: simResult });
+                this.postMessage({ type: "simulation_result", simResult: simResult, workerId: event.data.workerId });
             } catch (e) {
                 console.log(e);
                 this.postMessage({ type: "simulation_error", error: e });
@@ -107,7 +107,7 @@ onmessage = async function (event) {
                     simulatorWorkerPool[i].terminate();
                 }
 
-                this.postMessage({ type: "simulation_result_allZones", simResults: simulationResults });
+                this.postMessage({ type: "simulation_result_allZones", simResults: simulationResults, workerId: event.data.workerId });
             } catch (e) {
                 console.log(e);
                 this.postMessage({ type: "simulation_error", error: e });

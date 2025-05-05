@@ -18,6 +18,7 @@
         "title": "操作区域",
         "battleQueue": "战斗队列?",
         "startSimulation": "开始模拟",
+        "stopSimulation": "中止模拟",
         "startOptimization": "Trigger优化",
         "calcCoffeeBenefits": "计算咖啡收益",
         "coffeeResults": "咖啡结果",
@@ -44,6 +45,8 @@
     "noRNGDrops": "非随机掉落物",
     "simulationResults": {
         "title": "模拟结果",
+        "resultSaveName": "存档 __time__ __zone__",
+        "simulationDone": "模拟已完成",
         "killPerHour": "每小时击杀数",
         "encounters": "战斗次数",
         "timeSpentOnBoss": "在Boss上花费的时间",
