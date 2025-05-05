@@ -2245,7 +2245,36 @@ function updateAbilityUI() {
         selectElement.disabled = player.intelligenceLevel < _combatsimulator_data_abilitySlotsLevelRequirementList_json__WEBPACK_IMPORTED_MODULE_11__[i + 1];
         inputElement.disabled = player.intelligenceLevel < _combatsimulator_data_abilitySlotsLevelRequirementList_json__WEBPACK_IMPORTED_MODULE_11__[i + 1];
         triggerButton.disabled = player.intelligenceLevel < _combatsimulator_data_abilitySlotsLevelRequirementList_json__WEBPACK_IMPORTED_MODULE_11__[i + 1] || !abilities[i];
+
+        let moveUpButton = document.getElementById("selectAbilityMoveUp_" + i);
+        moveUpButton.onclick = () => swapAbilityOrder(i, -1);
+        let moveDownButton = document.getElementById("selectAbilityMoveDown_" + i);
+        moveDownButton.onclick = () => swapAbilityOrder(i, 1);
     }
+}
+
+function swapAbilityOrder(abilityIndex, step) {
+    const swapIndex = abilityIndex + step;
+    if (swapIndex < 0 || swapIndex > 4) {
+        return;
+    }
+
+    let abilitySelect = document.getElementById("selectAbility_" + abilityIndex);
+    let abilityLevelInput = document.getElementById("inputAbilityLevel_" + abilityIndex);
+
+    const tempAbility = abilities[abilityIndex];
+    abilities[abilityIndex] = abilities[swapIndex];
+    abilities[swapIndex] = tempAbility;
+
+    const tempLevel = abilityLevelInput.value;
+    abilityLevelInput.value = document.getElementById("inputAbilityLevel_" + swapIndex).value;
+    document.getElementById("inputAbilityLevel_" + swapIndex).value = tempLevel;
+
+    abilitySelect.value = document.getElementById("selectAbility_" + (swapIndex)).value;
+    document.getElementById("selectAbility_" + swapIndex).value = abilities[swapIndex];
+
+    updateAbilityState();
+    updateAbilityUI();
 }
 
 // #endregion
