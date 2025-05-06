@@ -4615,9 +4615,9 @@ function showErrorModal(error) {
 
 window.prices;
 
-async function fetchPrices() {
+async function fetchPrices(target) {
     try {
-        const response = await fetch('https://ghproxy.net/https://raw.githubusercontent.com/holychikenz/MWIApi/refs/heads/main/milkyapi.json'
+        const response = await fetch('https://ghproxy.net/https://raw.githubusercontent.com/holychikenz/MWIApi/refs/heads/main/' + target + '.json'
             , {
                 mode: 'cors'
             }
@@ -4684,7 +4684,11 @@ async function fetchPrices() {
 }
 
 document.getElementById("buttonGetPrices").onclick = async () => {
-    await fetchPrices();
+    await fetchPrices('milkyapi');
+};
+
+document.getElementById("buttonGetPricesAvg").onclick = async () => {
+    await fetchPrices('medianmarket');
 };
 
 document.addEventListener("input", (e) => {

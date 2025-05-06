@@ -11,6 +11,7 @@
     "player": "玩家",
     "trigger": "触发条件",
     "getPrices": "获取价格",
+    "getPricesAvg": "获取日均价格",
     "editPrices": "编辑价格",
     "patchNotes": "更新日志",
     "calcEPHProfit": "计算EPH利润",

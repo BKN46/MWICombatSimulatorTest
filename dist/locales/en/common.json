@@ -11,6 +11,7 @@
     "player": "Player",
     "trigger": "Trigger",
     "getPrices": "Get Prices",
+    "getPricesAvg": "Get Average Prices",
     "editPrices": "Edit Prices",
     "patchNotes": "Patch Notes",
     "calcEPHProfit": "Calc EPH Profit",
