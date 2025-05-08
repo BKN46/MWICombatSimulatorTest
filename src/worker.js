@@ -4,6 +4,7 @@ import Zone from "./combatsimulator/zone";
 
 
 onmessage = async function (event) {
+    let workerId = event.data.workerId;
     switch (event.data.type) {
         case "start_simulation":
             let playersData = event.data.players;

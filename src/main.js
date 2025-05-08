@@ -2308,6 +2308,7 @@ function startSimulation(selectedPlayers) {
             players: playersToSim,
             zones: zoneHrids,
             simulationTimeLimit: simulationTimeLimit,
+            threadLimit: window.navigator.hardwareConcurrency,
         };
         multiWorker.postMessage(workerMessage);
     }
