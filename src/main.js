@@ -15,6 +15,7 @@ import combatMonsterDetailMap from "./combatsimulator/data/combatMonsterDetailMa
 import damageTypeDetailMap from "./combatsimulator/data/damageTypeDetailMap.json";
 import combatStyleDetailMap from "./combatsimulator/data/combatStyleDetailMap.json";
 import openableLootDropMap from "./combatsimulator/data/openableLootDropMap.json";
+import patchNote from "../patchNote.json";
 
 const ONE_SECOND = 1e9;
 const ONE_HOUR = 60 * 60 * ONE_SECOND;
@@ -3137,6 +3138,22 @@ function updateTable(tableId, item, price) {
 
 // #endregion
 
+function initPatchNotes() {
+    const patchNotesElement = document.getElementById("patchNotes");
+    for (const pn in patchNote) {
+        const patchNoteElement = document.createElement("h6");
+        patchNoteElement.innerHTML = pn;
+        const patchNoteList = document.createElement("ul");
+        for (const note of patchNote[pn]) {
+            const noteElement = document.createElement("li");
+            noteElement.innerHTML = note;
+            patchNoteList.appendChild(noteElement);
+        }
+        patchNotesElement.appendChild(patchNoteElement);
+        patchNotesElement.appendChild(patchNoteList);
+    }
+}
+
 function updateState() {
     updateEquipmentState();
     updateLevels();
@@ -3212,6 +3229,7 @@ initEquipmentSetsModal();
 initErrorHandling();
 initImportExportModal();
 initDamageDoneTaken();
+initPatchNotes();
 
 updateState();
 updateUI();
