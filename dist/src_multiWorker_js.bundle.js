@@ -40,7 +40,7 @@
 /******/ 		if (__webpack_require__.g.importScripts) scriptUrl = __webpack_require__.g.location + "";
 /******/ 		var document = __webpack_require__.g.document;
 /******/ 		if (!scriptUrl && document) {
-/******/ 			if (document.currentScript)
+/******/ 			if (document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT')
 /******/ 				scriptUrl = document.currentScript.src;
 /******/ 			if (!scriptUrl) {
 /******/ 				var scripts = document.getElementsByTagName("script");
@@ -53,7 +53,7 @@
 /******/ 		// When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration
 /******/ 		// or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.
 /******/ 		if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
-/******/ 		scriptUrl = scriptUrl.replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
+/******/ 		scriptUrl = scriptUrl.replace(/^blob:/, "").replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
 /******/ 		__webpack_require__.p = scriptUrl;
 /******/ 	})();
 /******/ 	
@@ -79,7 +79,6 @@
 /*!****************************!*\
   !*** ./src/multiWorker.js ***!
   \****************************/
-
 onmessage = async function (event) {
     switch (event.data.type) {
         case "start_simulation_all_zones":
@@ -88,45 +87,65 @@ onmessage = async function (event) {
             const zoneHrids = event.data.zones;
             let zoneProgress = {};
 
+            // 设置 worker 池最大数量
+            const threadLimit = event.data.threadLimit ? event.data.threadLimit : 4;
+            console.log(`Multi worker run in ${threadLimit} threads`);
+            
             try {
-                const simulatorWorkerPool = []
-                for (let i = 0; i < zoneHrids.length; i++) {
-                    const simulationWorker = new Worker(new URL(/* worker import */ __webpack_require__.p + __webpack_require__.u(1), __webpack_require__.b));
-                    simulatorWorkerPool.push(simulationWorker);
-                    // Do simulation
-                    let workerMessage = {
-                        type: "start_simulation",
-                        players: event.data.players,
-                        zoneHrid: zoneHrids[i],
-                        simulationTimeLimit: event.data.simulationTimeLimit,
-                    };
-                    simulationWorker.postMessage(workerMessage);
-                }
-
                 const outer_worker = this;
-                // Wait for all simulations to finish
-                const simulationResults = await Promise.all(simulatorWorkerPool.map(worker => {
-                    return new Promise((resolve, reject) => {
-                        worker.onmessage = function (event) {
-                            if (event.data.type === "simulation_result") {
-                                resolve(event.data.simResult);
-                            } else if (event.data.type === "simulation_progress") {
-                                zoneProgress[event.data.zone] = event.data.progress;
-                                let totalProgress = Object.values(zoneProgress).reduce((acc, progress) => acc + progress, 0) / Object.keys(zoneProgress).length;
-                                outer_worker.postMessage({ type: "simulation_progress", progress: totalProgress });
-                            } else if (event.data.type === "simulation_error") {
-                                reject(event.data.error);
-                            }
+                const allSimulationResults = [];
+                
+                // Deal with cases by batches
+                for (let startIdx = 0; startIdx < zoneHrids.length; startIdx += threadLimit) {
+                    const simulatorWorkerPool = [];
+                    const currentBatchSize = Math.min(threadLimit, zoneHrids.length - startIdx);
+                    
+                    // Create workers
+                    for (let i = 0; i < currentBatchSize; i++) {
+                        const zoneIndex = startIdx + i;
+                        const workerId = Math.random().toString(36).substring(2, 15);
+                        const simulationWorker = new Worker(new URL(/* worker import */ __webpack_require__.p + __webpack_require__.u(1), __webpack_require__.b));
+                        simulatorWorkerPool.push({
+                            id: workerId,
+                            worker: simulationWorker,
+                            zoneHrid: zoneHrids[zoneIndex]
+                        });
+                        
+                        let workerMessage = {
+                            type: "start_simulation",
+                            players: event.data.players,
+                            workerId: workerId,
+                            zoneHrid: zoneHrids[zoneIndex],
+                            simulationTimeLimit: event.data.simulationTimeLimit,
                         };
-                    });
-                }));
+                        simulationWorker.postMessage(workerMessage);
+                    }
+                    
+                    // Wait til all workers finish
+                    const batchResults = await Promise.all(simulatorWorkerPool.map(workerInfo => {
+                        return new Promise((resolve, reject) => {
+                            workerInfo.worker.onmessage = function (event) {
+                                if (event.data.type === "simulation_result") {
+                                    resolve(event.data.simResult);
+                                } else if (event.data.type === "simulation_progress") {
+                                    zoneProgress[event.data.zone] = event.data.progress;
+                                    let totalProgress = Object.values(zoneProgress).reduce((acc, progress) => acc + progress, 0) / zoneHrids.length;
+                                    outer_worker.postMessage({ type: "simulation_progress", progress: totalProgress });
+                                } else if (event.data.type === "simulation_error") {
+                                    reject(event.data.error);
+                                }
+                            };
+                        });
+                    }));
+                    
+                    allSimulationResults.push(...batchResults);
 
-                // Terminate all workers
-                for (let i = 0; i < simulatorWorkerPool.length; i++) {
-                    simulatorWorkerPool[i].terminate();
+                    for (let workerInfo of simulatorWorkerPool) {
+                        workerInfo.worker.terminate();
+                    }
                 }
-
-                this.postMessage({ type: "simulation_result_allZones", simResults: simulationResults });
+                
+                this.postMessage({ type: "simulation_result_allZones", simResults: allSimulationResults });
             } catch (e) {
                 console.log(e);
                 this.postMessage({ type: "simulation_error", error: e });
