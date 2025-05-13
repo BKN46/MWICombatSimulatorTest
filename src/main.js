@@ -84,10 +84,12 @@ function mainWorkerOnMessage(event) {
         case "simulation_result_allZones":
             progressbar.style.width = "100%";
             progressbar.innerHTML = "100%";
+            saveSimulationResult(event.data.simResults);
+            getSimulationResults();
             showAllSimulationResults(event.data.simResults);
             updateContent();
             buttonStartSimulation.disabled = false;
-            document.getElementById('buttonShowAllSimData').style.display = 'block';
+            // document.getElementById('buttonShowAllSimData').style.display = 'block';
             buttonStopSimulation.style.display = 'none';
             if (workerIndex !== -1) {
                 workerPool[workerIndex].worker.terminate();
@@ -1039,14 +1041,24 @@ function initDamageDoneTaken() {
 
 
 function saveSimulationResult(simResult) {
-    const saveLimit = 10;
+    const saveLimit = 50;
+    let result = simResult;
+    if (simResult[0]) {
+        result = {
+            zoneName: "All",
+            simId: simResult[0].simId,
+            simulationName: `${new Date().toLocaleString()} AllZones`,
+            results: simResult,
+        }
+    }
+
     let simResults = sessionStorage.getItem("simResults");
     if (simResults) {
         simResults = JSON.parse(simResults);
     } else {
         simResults = [];
     }
-    simResults.push(simResult);
+    simResults.push(result);
     if (simResults.length > saveLimit) {
         simResults.shift();
     }
@@ -1069,21 +1081,29 @@ function getSimulationResults() {
     }
 
     let selectElement = document.getElementById("selectResultView");
+    // Clear existing options
+    while (selectElement.options.length > 0) {
+        selectElement.remove(0);
+    }
+
     for (let i = 0; i < simResults.length; i++) {
         // TODO: Better localization calling for this
-        const zoneName = translationMap['zh']['translation'].actionNames[simResults[i].zoneName];
+        const zoneName = translationMap['zh']['translation'].actionNames[simResults[i].zoneName] || simResults[i].zoneName;
         const saveName = `Save ${simResults[i].simulationName} ${zoneName}`;
-        let opt = new Option(saveName, simResults[i].simulationName);
-        // opt.setAttribute("data-i18n", "common:simulationResults.resultSaveName");
-        // opt.setAttribute("data-i18n-options", JSON.stringify({ time: simResults[i].simulationName, zone: `$t(actionNames.${simResults[i].zoneName})` }));
+        let opt = new Option(saveName, simResults[i].simId);
         selectElement.add(opt);
     }
 
     selectElement.addEventListener("change", (event) => {
         let simResults = JSON.parse(sessionStorage.getItem("simResults"));
         let selectedOption = event.target.value;
-        let simResult = simResults.find((result) => result.simulationName === selectedOption);
-        showSimulationResult(simResult);
+        let simResult = simResults.find((result) => result.simId == selectedOption);
+
+        if (simResult.results && typeof simResult.results[0]) {
+            showAllSimulationResults(simResult.results);
+        } else {
+            showSimulationResult(simResult);
+        }
         updateContent();
     });
 
@@ -1092,8 +1112,20 @@ function getSimulationResults() {
 
 getSimulationResults()
 
+document.getElementById("buttonDeleteAllResult").onclick = function () {
+    sessionStorage.removeItem("simResults");
+    let selectElement = document.getElementById("selectResultView");
+    // Clear existing options
+    while (selectElement.options.length > 0) {
+        selectElement.remove(0);
+    }
+}
+
 
 function showSimulationResult(simResult) {
+    document.getElementById("allSimsModal").style.display = "none";
+    document.getElementById("simResultPanel").style.display = "flex";
+
     currentSimResults = simResult;
     let expensesModalTable = document.querySelector("#expensesTable > tbody");
     expensesModalTable.innerHTML = '<th data-i18n=\"marketplacePanel.item\">Item</th><th data-i18n=\"marketplacePanel.price\">Price</th><th data-i18n=\"common:amount\">Amount</th><th data-i18n=\"common:total\">Total</th>';
@@ -1124,6 +1156,9 @@ function showSimulationResult(simResult) {
 }
 
 function showAllSimulationResults(simResults) {
+    document.getElementById("allSimsModal").style.display = "block";
+    document.getElementById("simResultPanel").style.display = "none";
+
     let displaySimResults = manipulateSimResultsDataForDisplay(simResults);
     updateAllSimsModal(displaySimResults);
 }
@@ -1131,8 +1166,8 @@ function showAllSimulationResults(simResults) {
 function manipulateSimResultsDataForDisplay(simResults) {
     let displaySimResults = [];
     for (let i = 0; i < simResults.length; i++) {
-        for (let j = 0; j < selectedPlayers.length; j++) {
-            let playerToDisplay = "player" + selectedPlayers[j].toString();
+        for (let j = 0; j < Object.keys(simResults[i].experienceGained).length; j++) {
+            let playerToDisplay = "player" + (j + 1);
             let simResult = simResults[i];
             let hoursSimulated = simResult.simulatedTime / ONE_HOUR;
             let zoneName = simResult.zoneName;
@@ -2472,6 +2507,77 @@ function startSimulation(selectedPlayers, doOptimization) {
     }
 }
 
+// read JSON file to simulate
+document.getElementById("buttonUploadJSONSimulate").addEventListener("click", (event) => {
+    let fileInput = document.getElementById("inputUploadJSONSimulation");
+    let file = fileInput.files[0];
+    if (!file) {
+        alert("Please select a file to upload.");
+        return;
+    }
+
+    let reader = new FileReader();
+    reader.onload = function (event) {
+        let fileContent = event.target.result;
+        const jsonDataList = JSON.parse(fileContent);
+        try {
+            for (const key in jsonDataList) {
+                const jsonData = jsonDataList[key];
+                if (!jsonData || !jsonData.zone || !jsonData.players) {
+                    alert("Invalid JSON file format. Please ensure it contains a 'simulationResult' property.");
+                    return;
+                }
+                const playersToSim = Object.values(jsonData.players).map(
+                    (player, index) => parsePlayerJson(player, `player${index + 1}`)
+                );
+                const simulationTimeLimit = (jsonData.simulationTimeLimit || 24) * ONE_HOUR;
+                const zoneHrid = jsonData.zone;
+                if (zoneHrid === "all") {
+                    let zoneHrids = Object.values(actionDetailMap)
+                        .filter((action) => action.type == "/action_types/combat" && action.category != "/action_categories/combat/dungeons" && action.combatZoneInfo.fightInfo.battlesPerBoss === 10)
+                        .sort((a, b) => a.sortIndex - b.sortIndex)
+                        .map(action => action.hrid);
+                    let workerMessage = {
+                        type: "start_simulation_all_zones",
+                        workerId: Math.floor(Math.random() * 1e9).toString(),
+                        players: playersToSim,
+                        zones: zoneHrids,
+                        simulationTimeLimit: simulationTimeLimit,
+                    };
+                    const worker = new Worker(new URL("worker.js", import.meta.url)); 
+                    worker.onmessage = mainWorkerOnMessage;
+                    worker.postMessage(workerMessage);
+                    customAlert("Simulation task Created", "info")
+                    workerPool.push({
+                        workerId: workerMessage.workerId,
+                        worker: worker,
+                    });
+                } else {
+                    let workerMessage = {
+                        type: "start_simulation",
+                        workerId: Math.floor(Math.random() * 1e9).toString(),
+                        players: playersToSim,
+                        zoneHrid: zoneHrid,
+                        simulationTimeLimit: simulationTimeLimit,
+                    };
+                    const worker = new Worker(new URL("worker.js", import.meta.url)); 
+                    worker.onmessage = mainWorkerOnMessage;
+                    worker.postMessage(workerMessage);
+                    customAlert("Simulation task Created", "info")
+                    workerPool.push({
+                        workerId: workerMessage.workerId,
+                        worker: worker,
+                    });
+                }
+            }
+        } catch (error) {
+            // alert("Error parsing JSON file: " + error.message);
+            customAlert("Error parsing JSON file: " + error.message, "danger");
+        }
+    }
+    reader.readAsText(file);
+});
+
 // #endregion
 
 // #region Equipment Sets
@@ -2961,6 +3067,61 @@ function doSoloImport() {
         let simulationDuration = document.getElementById("inputSimulationTime");
         simulationDuration.value = importSet["simulationTime"];
     }
+}
+
+function parsePlayerJson(playerJson, hrid) {
+    let playerData = {
+        hrid: hrid,
+        "isPlayer": true,
+        "isStunned": false,
+        "stunExpireTime": null,
+        "isBlinded": false,
+        "blindExpireTime": null,
+        "isSilenced": false,
+        "silenceExpireTime": null,
+        "curseValue": 0,
+        "furyValue": 0,
+        "isWeakened": false,
+        "weakenExpireTime": null,
+        "dropTable": [],
+        "rareDropTable": [],
+        "abilityManaCosts": {},
+        "combatBuffs": {},
+        "permanentBuffs": {},
+        "zoneBuffs": {},
+        food: [],
+        drinks: [],
+        abilities: [],
+        ...playerJson.player,
+        houseRooms: playerJson.houseRooms,
+    };
+    playerData.equipment = {};
+    ["head", "body", "legs", "feet", "hands", "off_hand", "pouch", "neck", "earrings", "ring", "back"].forEach((type) => {
+        let currentEquipment = playerJson.player.equipment.find(item => item.itemLocationHrid === "/item_locations/" + type);
+        if (currentEquipment){
+            playerData.equipment[`/equipment_types/${type}`] = new Equipment(currentEquipment.itemHrid, currentEquipment.enhancementLevel);
+        }
+    });
+    for (const foodHrid of playerJson.food["/action_types/combat"]) {
+        if (foodHrid.itemHrid === "") continue;
+        const food = new Consumable(foodHrid.itemHrid, triggerMap[foodHrid.itemHrid]);
+        playerData.food.push(food);
+    }
+    for (const drinkHrid of playerJson.drinks["/action_types/combat"]) {
+        if (drinkHrid.itemHrid === "") continue;
+        const drink = new Consumable(drinkHrid.itemHrid, triggerMap[drinkHrid.itemHrid]);
+        playerData.drinks.push(drink);
+    }
+    for (const ability of playerJson.abilities) {
+        if (ability.abilityHrid === "") continue;
+        const abilityLevel = Number(ability.level);
+        const abilityHrid = ability.abilityHrid;
+        if (abilityLevel > 0) {
+            const abilityObj = new Ability(abilityHrid, abilityLevel, triggerMap[abilityHrid]);
+            playerData.abilities.push(abilityObj);
+        }
+    }
+    return playerData;
 }
 
 function savePreviousPlayer(playerId) {
