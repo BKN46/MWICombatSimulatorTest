@@ -40,6 +40,7 @@ onmessage = async function (event) {
 
             try {
                 let simResult = await combatSimulator.simulate(simulationTimeLimit);
+                simResult.simulationName = event.data.simulationName ? `${simResult.simulationName} ${event.data.simulationName}` : simResult.simulationName;
                 this.postMessage({ type: "simulation_result", simResult: simResult, workerId: event.data.workerId });
             } catch (e) {
                 console.log(e);
@@ -64,6 +65,7 @@ onmessage = async function (event) {
                         simulationWorker.postMessage({
                             type: "start_simulation",
                             players: event.data.players,
+                            simulationName: event.data.simulationName,
                             zone: zoneHrids[i],
                             simulationTimeLimit: event.data.simulationTimeLimit,
                         });
@@ -92,7 +94,7 @@ onmessage = async function (event) {
                 for (let i = 0; i < simulatorWorkerPool.length; i++) {
                     simulatorWorkerPool[i].terminate();
                 }
-
+                simulationResults[0].simulationName = event.data.simulationName || simResult.simulationName;
                 this.postMessage({ type: "simulation_result_allZones", simResults: simulationResults, workerId: event.data.workerId });
             } catch (e) {
                 console.log(e);

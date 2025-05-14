@@ -990,11 +990,15 @@
                                 <div class="col" >
                                     <h5 style="margin: 0;" data-i18n="common:simulateAllZonesResults">Simulate All Zones Results</h5>
                                 </div>
+                                <div class="col">
+                                    <input type="range" id="resultScale" class="form-control mb-3" value="1" min="0.1" max="2" step="0.1"
+                                        placeholder="Scale" />
+                                </div>
                                 <div class="col" style="display: flex; gap: 10px;">
                                     <button type="button" class="btn btn-primary" id="buttonExportResults" data-bs-dismiss="modal" data-i18n="common:exportToCSV">Export To CSV</button>
                                 </div>
                             </div>
-                            <div class="row" style="transform-origin: top left;transform: scale(0.6); margin-left: 5px;">
+                            <div id="allResultsTable" class="row" style="transform-origin: top left;transform: scale(0.6); margin-left: 5px;">
                                 <table id="allZonesData">
                                     <thead>
                                         <tr>

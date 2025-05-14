@@ -12119,10 +12119,11 @@ function saveSimulationResult(simResult) {
     const saveLimit = 50;
     let result = simResult;
     if (simResult[0]) {
+        const simulationName = simResult[0].simulationName ? `${new Date().toLocaleString()} ${simResult[0].simulationName}` : `${new Date().toLocaleString()} AllZones`;
         result = {
             zoneName: "All",
             simId: simResult[0].simId,
-            simulationName: `${new Date().toLocaleString()} AllZones`,
+            simulationName: simulationName,
             results: simResult,
         }
     }
@@ -12141,6 +12142,7 @@ function saveSimulationResult(simResult) {
     try {
         sessionStorage.setItem("simResults", JSON.stringify(simResults));
     } catch (error) {
+        console.log("Session storage is full, removing oldest simulation result: " + error);
         simResults.shift();
         sessionStorage.setItem("simResults", JSON.stringify(simResults));
     }
@@ -12161,6 +12163,7 @@ function getSimulationResults() {
         selectElement.remove(0);
     }
 
+    selectElement.add(new Option("Select a simulation result", ""));
     for (let i = 0; i < simResults.length; i++) {
         // TODO: Better localization calling for this
         const zoneName = _js_i18n_js__WEBPACK_IMPORTED_MODULE_17__["default"]['zh']['translation'].actionNames[simResults[i].zoneName] || simResults[i].zoneName;
@@ -12173,6 +12176,9 @@ function getSimulationResults() {
         let simResults = JSON.parse(sessionStorage.getItem("simResults"));
         let selectedOption = event.target.value;
         let simResult = simResults.find((result) => result.simId == selectedOption);
+        if (!simResult) {
+            return;
+        }
 
         if (simResult.results && typeof simResult.results[0]) {
             showAllSimulationResults(simResult.results);
@@ -12186,6 +12192,11 @@ function getSimulationResults() {
 }
 
 getSimulationResults()
+
+document.getElementById("resultScale").onchange = function (event) {
+    const resultElement = document.getElementById("allResultsTable");
+    resultElement.style.transform = `scale(${event.target.value})`;
+}
 
 document.getElementById("buttonDeleteAllResult").onclick = function () {
     sessionStorage.removeItem("simResults");
@@ -12241,8 +12252,8 @@ function showAllSimulationResults(simResults) {
 function manipulateSimResultsDataForDisplay(simResults) {
     let displaySimResults = [];
     for (let i = 0; i < simResults.length; i++) {
-        for (let j = 0; j < Object.keys(simResults[i].experienceGained).length; j++) {
-            let playerToDisplay = "player" + (j + 1);
+        for (const playerToDisplay of Object.keys(simResults[i].experienceGained)) {
+            // let playerToDisplay = "player" + (j + 1);
             let simResult = simResults[i];
             let hoursSimulated = simResult.simulatedTime / ONE_HOUR;
             let zoneName = simResult.zoneName;
@@ -13606,6 +13617,7 @@ document.getElementById("buttonUploadJSONSimulate").addEventListener("click", (e
                     (player, index) => parsePlayerJson(player, `player${index + 1}`)
                 );
                 const simulationTimeLimit = (jsonData.simulationTimeLimit || 24) * ONE_HOUR;
+                const simName = jsonData.name || `Json ${key}`;
                 const zoneHrid = jsonData.zone;
                 if (zoneHrid === "all") {
                     let zoneHrids = Object.values(_combatsimulator_data_actionDetailMap_json__WEBPACK_IMPORTED_MODULE_12__)
@@ -13613,6 +13625,7 @@ document.getElementById("buttonUploadJSONSimulate").addEventListener("click", (e
                         .sort((a, b) => a.sortIndex - b.sortIndex)
                         .map(action => action.hrid);
                     let workerMessage = {
+                        simulationName: simName,
                         type: "start_simulation_all_zones",
                         workerId: Math.floor(Math.random() * 1e9).toString(),
                         players: playersToSim,
@@ -13629,6 +13642,7 @@ document.getElementById("buttonUploadJSONSimulate").addEventListener("click", (e
                     });
                 } else {
                     let workerMessage = {
+                        simulationName: simName,
                         type: "start_simulation",
                         workerId: Math.floor(Math.random() * 1e9).toString(),
                         players: playersToSim,

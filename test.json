@@ -1,5 +1,6 @@
 [
   {
+    "name": "json demo1",
     "zone": "/actions/combat/bear_with_it",
     "simulationTimeLimit": 24,
     "players": [
@@ -7,6 +8,7 @@
     ]
   },
   {
+    "name": "json demo2",
     "zone": "all",
     "simulationTimeLimit": 24,
     "players": [
@@ -14,6 +16,7 @@
     ]
   },
   {
+    "name": "json demo3",
     "zone": "/actions/combat/bear_with_it",
     "simulationTimeLimit": 24,
     "players": [
