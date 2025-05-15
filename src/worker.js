@@ -94,7 +94,7 @@ onmessage = async function (event) {
                 for (let i = 0; i < simulatorWorkerPool.length; i++) {
                     simulatorWorkerPool[i].terminate();
                 }
-                simulationResults[0].simulationName = event.data.simulationName || simResult.simulationName;
+                simulationResults[0].simulationName = event.data.simulationName || simulationResults[0].simulationName;
                 this.postMessage({ type: "simulation_result_allZones", simResults: simulationResults, workerId: event.data.workerId });
             } catch (e) {
                 console.log(e);
