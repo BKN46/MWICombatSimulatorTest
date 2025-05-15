@@ -14170,6 +14170,7 @@ function parsePlayerJson(playerJson, hrid) {
         "silenceExpireTime": null,
         "curseValue": 0,
         "furyValue": 0,
+        "weakenPercentage": 0,
         "isWeakened": false,
         "weakenExpireTime": null,
         "dropTable": [],
@@ -14185,12 +14186,14 @@ function parsePlayerJson(playerJson, hrid) {
         houseRooms: playerJson.houseRooms,
     };
     playerData.equipment = {};
-    ["head", "body", "legs", "feet", "hands", "off_hand", "pouch", "neck", "earrings", "ring", "back"].forEach((type) => {
+    const triggerMap = playerJson.triggerMap;
+    ["head", "body", "legs", "feet", "hands", "off_hand", "pouch", "neck", "earrings", "ring", "back", "main_hand", "two_hand"].forEach((type) => {
         let currentEquipment = playerJson.player.equipment.find(item => item.itemLocationHrid === "/item_locations/" + type);
         if (currentEquipment){
             playerData.equipment[`/equipment_types/${type}`] = new _combatsimulator_equipment_js__WEBPACK_IMPORTED_MODULE_0__["default"](currentEquipment.itemHrid, currentEquipment.enhancementLevel);
         }
     });
+
     for (const foodHrid of playerJson.food["/action_types/combat"]) {
         if (foodHrid.itemHrid === "") continue;
         const food = new _combatsimulator_consumable_js__WEBPACK_IMPORTED_MODULE_6__["default"](foodHrid.itemHrid, triggerMap[foodHrid.itemHrid]);
@@ -14210,7 +14213,10 @@ function parsePlayerJson(playerJson, hrid) {
             playerData.abilities.push(abilityObj);
         }
     }
-    return playerData;
+    const player = _combatsimulator_player_js__WEBPACK_IMPORTED_MODULE_1__["default"].createFromDTO(playerData)
+    player.updateCombatDetails();
+    player.houseRooms = playerJson.houseRooms;
+    return player;
 }
 
 function savePreviousPlayer(playerId) {
