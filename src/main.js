@@ -6,6 +6,7 @@ import houseRoomDetailMap from "./combatsimulator/data/houseRoomDetailMap.json";
 import Ability from "./combatsimulator/ability.js";
 import Consumable from "./combatsimulator/consumable.js";
 import HouseRoom from "./combatsimulator/houseRoom"
+import { getProductCases } from "./combatsimulator/optimizer.js";
 import combatTriggerDependencyDetailMap from "./combatsimulator/data/combatTriggerDependencyDetailMap.json";
 import combatTriggerConditionDetailMap from "./combatsimulator/data/combatTriggerConditionDetailMap.json";
 import combatTriggerComparatorDetailMap from "./combatsimulator/data/combatTriggerComparatorDetailMap.json";
@@ -1040,6 +1041,7 @@ function initDamageDoneTaken() {
 }
 
 
+// #region Save/load results
 function saveSimulationResult(simResult) {
     const saveLimit = 50;
     let result = simResult;
@@ -1062,6 +1064,21 @@ function saveSimulationResult(simResult) {
     simResults.push(result);
     if (simResults.length > saveLimit) {
         simResults.shift();
+    }
+    const isDownloadResult = document.getElementById("downloadResults").checked;
+    if (isDownloadResult) {
+        // Download simulation results as JSON file
+        const fileName = `[MWISim]${result.simulationName}-${result.zoneName}.json`;
+        const jsonStr = JSON.stringify(result, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     }
 
     try {
@@ -2518,6 +2535,7 @@ function startSimulation(selectedPlayers, doOptimization) {
     }
 }
 
+// #region JSON sim
 // read JSON file to simulate
 document.getElementById("buttonUploadJSONSimulate").addEventListener("click", (event) => {
     let fileInput = document.getElementById("inputUploadJSONSimulation");
@@ -2532,8 +2550,17 @@ document.getElementById("buttonUploadJSONSimulate").addEventListener("click", (e
         let fileContent = event.target.result;
         const jsonDataList = JSON.parse(fileContent);
         try {
+            const simDataList = [];
             for (const key in jsonDataList) {
-                const jsonData = jsonDataList[key];
+                if (jsonDataList[key].cases) {
+                    const cases = getProductCases(jsonDataList[key], jsonDataList[key].cases);
+                    simDataList.push(...cases);
+                } else {
+                    simDataList.push(jsonDataList[key]);
+                }
+            }
+            for (const key in simDataList) {
+                const jsonData = simDataList[key];
                 if (!jsonData || !jsonData.zone || !jsonData.players) {
                     alert("Invalid JSON file format. Please ensure it contains a 'simulationResult' property.");
                     return;

@@ -9,12 +9,16 @@
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   getProductCases: () => (/* binding */ getProductCases)
+/* harmony export */ });
 /* harmony import */ var _player__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./player */ "./src/combatsimulator/player.js");
 
 
 const ONE_SECOND = 1e9;
 const ONE_HOUR = 60 * 60 * ONE_SECOND;
 
+// #region Trigger Optimizer
 const OPTIMIZABLE_TRIGGERS = {
     // [min, max, step]
     "/combat_trigger_conditions/lowest_hp_percentage": [0, 100, 20],
@@ -216,6 +220,72 @@ onmessage = async function (event) {
             let triggerResults = await triggerOptimizer(playersData, zoneHrid, optimizeTarget, baseOptimizationTime, learningRate);
             break;
     }
+}
+
+
+// #region Cartesian product case
+function cartesianProduct(all_tests) {
+    const entries = Object.entries(all_tests);
+    
+    let result = entries[0][1];
+    result = Object.entries(result).map(([value, label]) => ({
+        [entries[0][0]]: [value, label],
+    }));
+    for (let i = 1; i < entries.length; i++) {
+        const [key, values] = entries[i];
+        const valueEntries = Object.entries(values);
+        const newResult = [];
+        for (const combination of result) {
+            for (const [value, label] of valueEntries) {
+                const newCombination = { ...combination };
+                newCombination[key] = [value, label];
+                newResult.push(newCombination);
+            }
+        }
+        
+        result = newResult;
+    }
+    
+    return result;
+}
+
+function modifyObject(obj, path, value) {
+    const keys = path.split('.');
+    let current = obj;
+    for (let i = 0; i < keys.length - 1; i++) {
+        const isNumeric = /^\d+$/.test(keys[i]);
+        if (isNumeric) {
+            if (!current[parseInt(keys[i])]) {
+                console.log("Invalid path:", path);
+                return;
+            }
+            current = current[parseInt(keys[i])];
+        } else {
+            if (!current[keys[i]]) {
+                console.log("Invalid path:", path);
+                return;
+            }
+            current = current[keys[i]];
+        }
+    }
+    current[keys[keys.length - 1]] = value;
+}
+
+function getProductCases(jsonCase, testCases){
+    const newCases = cartesianProduct(testCases);
+    let result = [];
+    for (const testCase of newCases) {
+        let newCase = structuredClone(jsonCase);
+        let newCaseName = [];
+        for (const key in testCase) {
+            const value = testCase[key];
+            modifyObject(newCase, key, value[0]);
+            newCaseName.push(value[1]);
+        }
+        newCase.name += ":" + newCaseName.join("-");
+        result.push(newCase);
+    }
+    return result;
 }
 
 
