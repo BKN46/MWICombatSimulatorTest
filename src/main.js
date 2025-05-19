@@ -62,10 +62,10 @@ function mainWorkerOnMessage(event) {
             progressbar.style.width = "100%";
             progressbar.innerHTML = "100%";
             //console.log("SIM RESULTS: ", event.data.simResult);
-            saveSimulationResult(event.data.simResult);
-            getSimulationResults();
             showSimulationResult(event.data.simResult);
             updateContent();
+            saveSimulationResult(event.data.simResult);
+            getSimulationResults();
             buttonStartSimulation.disabled = false;
             document.getElementById('buttonShowAllSimData').style.display = 'none';
             buttonStopSimulation.style.display = 'none';
@@ -89,6 +89,8 @@ function mainWorkerOnMessage(event) {
             getSimulationResults();
             showAllSimulationResults(event.data.simResults);
             updateContent();
+            saveSimulationResult(event.data.simResults);
+            getSimulationResults();
             buttonStartSimulation.disabled = false;
             // document.getElementById('buttonShowAllSimData').style.display = 'block';
             buttonStopSimulation.style.display = 'none';
@@ -1065,6 +1067,7 @@ function saveSimulationResult(simResult) {
     if (simResults.length > saveLimit) {
         simResults.shift();
     }
+
     const isDownloadResult = document.getElementById("downloadResults").checked;
     if (isDownloadResult) {
         // Download simulation results as JSON file
@@ -1081,12 +1084,19 @@ function saveSimulationResult(simResult) {
         URL.revokeObjectURL(url);
     }
 
+    let savedSuccessfully = false;
+    while (!savedSuccessfully && simResults.length > 0) {
     try {
         sessionStorage.setItem("simResults", JSON.stringify(simResults));
+            savedSuccessfully = true;
     } catch (error) {
         console.log("Session storage is full, removing oldest simulation result: " + error);
         simResults.shift();
-        sessionStorage.setItem("simResults", JSON.stringify(simResults));
+            if (simResults.length === 0) {
+                customAlert("Could not save any simulation results due to storage limitations", "danger");
+                break;
+            }
+        }
     }
 }
 
