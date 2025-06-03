@@ -1,96 +1,77 @@
-#pragma once
+// Copyright 2025 BKNMWICombatSimulator
+//
+// combat_simulator.h - Main combat simulation engine.
 
-#include <vector>
-#include <string>
+#ifndef COMBAT_SIMULATOR_OVERHAUL_INCLUDE_COMBAT_SIMULATOR_H_
+#define COMBAT_SIMULATOR_OVERHAUL_INCLUDE_COMBAT_SIMULATOR_H_
+
 #include <memory>
-#include <functional>
-#include "EventQueue.h"
-#include "SimResult.h"
-#include "Player.h"
-#include "Zone.h"
+#include <string>
+#include <vector>
 
-// Constants
-const long long ONE_SECOND = 1000000000;
-const long long HOT_TICK_INTERVAL = 5 * ONE_SECOND;
-const long long DOT_TICK_INTERVAL = 3 * ONE_SECOND;
-const long long REGEN_TICK_INTERVAL = 10 * ONE_SECOND;
-const long long ENEMY_RESPAWN_INTERVAL = 3 * ONE_SECOND;
-const long long PLAYER_RESPAWN_INTERVAL = 150 * ONE_SECOND;
-const long long RESTART_INTERVAL = 15 * ONE_SECOND;
+#include "player.h"
+#include "monster.h"
+#include "zone.h"
+#include "events/combat_events.h"
+#include "events/event_queue.h"
+#include "sim_result.h"
+
+namespace combat_simulator {
 
 class CombatSimulator {
-public:
-    CombatSimulator(std::vector<std::shared_ptr<Player>> players, std::shared_ptr<Zone> zone, const std::string& simId = "");
-    ~CombatSimulator();
+ public:
+  CombatSimulator(const std::vector<std::shared_ptr<Player>>& players,
+                  std::shared_ptr<Zone> zone,
+                  const std::string& sim_id = "");
 
-    // Main simulation function
-    std::shared_ptr<SimResult> simulate(long long simulationTimeLimit);
+  // 主仿真入口
+  std::shared_ptr<SimResult> Simulate(double simulation_time_limit);
 
-    // Event callbacks
-    typedef std::function<void(const std::string&, double)> ProgressCallback;
-    void setProgressCallback(ProgressCallback callback);
+  // 重置仿真状态
+  void Reset();
 
-private:
-    // Member variables
-    std::vector<std::shared_ptr<Player>> players;
-    std::shared_ptr<Zone> zone;
-    std::shared_ptr<EventQueue> eventQueue;
-    std::string simId;
-    std::shared_ptr<SimResult> simResult;
-    bool allPlayersDead;
-    std::vector<std::shared_ptr<Monster>> enemies;
-    long long simulationTime;
-    ProgressCallback progressCallback;
-    int tempDungeonCount;
+ private:
+  void ProcessEvent(Event* event);
+  void StartNewEncounter();
+  void AddNextAttackEvent(std::shared_ptr<CombatUnit> source);
+  bool CheckEncounterEnd();
+  bool TryUseAbility(std::shared_ptr<CombatUnit> source, std::shared_ptr<Ability> ability);
+  bool TryUseConsumable(std::shared_ptr<CombatUnit> source, std::shared_ptr<Consumable> consumable);
 
-    // Helper methods
-    void reset();
-    void processEvent(std::shared_ptr<Event> event);
-    
-    void processCombatStartEvent(std::shared_ptr<Event> event);
-    void processPlayerRespawnEvent(std::shared_ptr<Event> event);
-    void processEnemyRespawnEvent(std::shared_ptr<Event> event);
-    void processAutoAttackEvent(std::shared_ptr<Event> event);
-    void processConsumableTickEvent(std::shared_ptr<Event> event);
-    void processDamageOverTimeTickEvent(std::shared_ptr<Event> event);
-    void processRegenTickEvent(std::shared_ptr<Event> event);
-    void processCheckBuffExpirationEvent(std::shared_ptr<Event> event);
-    void processStunExpirationEvent(std::shared_ptr<Event> event);
-    void processBlindExpirationEvent(std::shared_ptr<Event> event);
-    void processSilenceExpirationEvent(std::shared_ptr<Event> event);
-    void processCurseExpirationEvent(std::shared_ptr<Event> event);
-    void processWeakenExpirationEvent(std::shared_ptr<Event> event);
-    void processFuryExpirationEvent(std::shared_ptr<Event> event);
-    
-    void startNewEncounter();
-    void startAttacks();
-    void addNextAttackEvent(std::shared_ptr<CombatEntity> source);
-    bool checkEncounterEnd();
-    void checkTriggers();
-    bool checkTriggersForUnit(std::shared_ptr<CombatEntity> unit, 
-                             const std::vector<std::shared_ptr<CombatEntity>>& friendlies,
-                             const std::vector<std::shared_ptr<CombatEntity>>& enemies);
-    
-    bool tryUseConsumable(std::shared_ptr<CombatEntity> source, std::shared_ptr<Consumable> consumable);
-    bool canUseAbility(std::shared_ptr<CombatEntity> source, std::shared_ptr<Ability> ability, bool oomCheck);
-    bool tryUseAbility(std::shared_ptr<CombatEntity> source, std::shared_ptr<Ability> ability);
-    
-    void processAbilityBuffEffect(std::shared_ptr<CombatEntity> source, 
-                                 std::shared_ptr<Ability> ability, 
-                                 const AbilityEffect& abilityEffect);
-    void processAbilityDamageEffect(std::shared_ptr<CombatEntity> source, 
-                                   std::shared_ptr<Ability> ability, 
-                                   const AbilityEffect& abilityEffect);
-    void processAbilityHealEffect(std::shared_ptr<CombatEntity> source, 
-                                 std::shared_ptr<Ability> ability, 
-                                 const AbilityEffect& abilityEffect);
-    void processAbilityReviveEffect(std::shared_ptr<CombatEntity> source, 
-                                   std::shared_ptr<Ability> ability, 
-                                   const AbilityEffect& abilityEffect);
-    std::shared_ptr<Monster> processAbilityPromoteEffect(std::shared_ptr<CombatEntity> source, 
-                                                        std::shared_ptr<Ability> ability, 
-                                                        const AbilityEffect& abilityEffect);
-    void processAbilitySpendHpEffect(std::shared_ptr<CombatEntity> source, 
-                                    std::shared_ptr<Ability> ability, 
-                                    const AbilityEffect& abilityEffect);
+  // 事件处理分派
+  void ProcessCombatStartEvent(events::CombatStartEvent* event);
+  void ProcessPlayerRespawnEvent(events::PlayerRespawnEvent* event);
+  void ProcessEnemyRespawnEvent(events::EnemyRespawnEvent* event);
+  void ProcessAutoAttackEvent(events::AutoAttackEvent* event);
+  void ProcessConsumableTickEvent(events::ConsumableTickEvent* event);
+  void ProcessDamageOverTimeTickEvent(events::DamageOverTimeEvent* event);
+  void ProcessCheckBuffExpirationEvent(events::CheckBuffExpirationEvent* event);
+  void ProcessRegenTickEvent(events::RegenTickEvent* event);
+  void ProcessStunExpirationEvent(events::StunExpirationEvent* event);
+  void ProcessBlindExpirationEvent(events::BlindExpirationEvent* event);
+  void ProcessSilenceExpirationEvent(events::SilenceExpirationEvent* event);
+  void ProcessCurseExpirationEvent(events::CurseExpirationEvent* event);
+  void ProcessWeakenExpirationEvent(events::WeakenExpirationEvent* event);
+  void ProcessFuryExpirationEvent(events::FuryExpirationEvent* event);
+  void ProcessAbilityCastEndEvent(events::AbilityCastEndEvent* event);
+  void ProcessAwaitCooldownEvent(events::AwaitCooldownEvent* event);
+
+  void CheckTriggers();
+  bool CheckTriggersForUnit(const std::shared_ptr<CombatUnit>& unit,
+    const std::vector<std::shared_ptr<CombatUnit>>& friendlies,
+    const std::vector<std::shared_ptr<CombatUnit>>& enemies);
+
+  // 主要成员
+  std::vector<std::shared_ptr<Player>> players_;
+  std::vector<std::shared_ptr<Monster>> enemies_;
+  std::shared_ptr<Zone> zone_;
+  std::unique_ptr<EventQueue> event_queue_;
+  std::shared_ptr<SimResult> sim_result_;
+  std::string sim_id_;
+  double simulation_time_ = 0;
+  bool all_players_dead_ = false;
 };
+
+}  // namespace combat_simulator
+
+#endif  // COMBAT_SIMULATOR_OVERHAUL_INCLUDE_COMBAT_SIMULATOR_H_
