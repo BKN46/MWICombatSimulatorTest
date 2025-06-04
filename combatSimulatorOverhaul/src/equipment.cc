@@ -17,17 +17,15 @@ namespace combat_simulator {
 nlohmann::json Equipment::LoadItemDetailMap() {
   static nlohmann::json item_detail_map = nullptr;
   if (item_detail_map == nullptr) {
+    std::ifstream file("data/itemDetailMap.json");
+    if (!file.is_open()) {
+      throw std::runtime_error("Failed to open data/itemDetailMap.json");
+    }
+    
     try {
-      std::ifstream file("combatSimulatorOverhaul/data/itemDetailMap.json");
-      if (file.is_open()) {
-        item_detail_map = nlohmann::json::parse(file);
-      } else {
-        // Fallback if file not found
-        item_detail_map = nlohmann::json::object();
-      }
-    } catch (const std::exception& e) {
-      // Handle parsing errors
-      item_detail_map = nlohmann::json::object();
+      item_detail_map = nlohmann::json::parse(file);
+    } catch (const nlohmann::json::parse_error& e) {
+      throw std::runtime_error(std::string("Failed to parse itemDetailMap.json: ") + e.what());
     }
   }
   return item_detail_map;
@@ -37,17 +35,15 @@ nlohmann::json Equipment::LoadItemDetailMap() {
 nlohmann::json Equipment::LoadEnhancementLevelTotalMultiplierTable() {
   static nlohmann::json enhancement_level_table = nullptr;
   if (enhancement_level_table == nullptr) {
+    std::ifstream file("data/enhancementLevelTotalBonusMultiplierTable.json");
+    if (!file.is_open()) {
+      throw std::runtime_error("Failed to open data/enhancementLevelTotalBonusMultiplierTable.json");
+    }
+    
     try {
-      std::ifstream file("combatSimulatorOverhaul/data/enhancementLevelTotalBonusMultiplierTable.json");
-      if (file.is_open()) {
-        enhancement_level_table = nlohmann::json::parse(file);
-      } else {
-        // Fallback if file not found
-        enhancement_level_table = nlohmann::json::object();
-      }
-    } catch (const std::exception& e) {
-      // Handle parsing errors
-      enhancement_level_table = nlohmann::json::object();
+      enhancement_level_table = nlohmann::json::parse(file);
+    } catch (const nlohmann::json::parse_error& e) {
+      throw std::runtime_error(std::string("Failed to parse enhancementLevelTotalBonusMultiplierTable.json: ") + e.what());
     }
   }
   return enhancement_level_table;

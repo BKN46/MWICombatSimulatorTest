@@ -196,6 +196,7 @@ class CombatUnit {
   
   // Getter methods
   const CombatDetails& combat_details() const { return combat_details_; }
+  CombatDetails& mutable_combat_details() { return combat_details_; }
   const std::map<std::string, Buff>& combat_buffs() const { return combat_buffs_; }
   const std::map<std::string, Buff>& permanent_buffs() const { return permanent_buffs_; }
   const std::vector<Buff>& zone_buffs() const { return zone_buffs_; }

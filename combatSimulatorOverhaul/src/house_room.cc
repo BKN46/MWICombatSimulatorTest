@@ -15,19 +15,21 @@
 namespace {
 // Helper function to load the house room detail map
 nlohmann::json LoadHouseRoomDetailMap() {
-  static nlohmann::json house_room_detail_map = nullptr;
-  if (house_room_detail_map == nullptr) {
+  static nlohmann::json house_room_detail_map = nlohmann::json::object();
+  static bool initialized = false;
+  if (!initialized) {
     try {
-      std::ifstream file("combatSimulatorOverhaul/data/houseRoomDetailMap.json");
+      std::ifstream file("data/houseRoomDetailMap.json");
       if (file.is_open()) {
         house_room_detail_map = nlohmann::json::parse(file);
+        initialized = true;
       } else {
         // Fallback if file not found
-        house_room_detail_map = nlohmann::json::object();
+        throw std::runtime_error("Failed to open houseRoomDetailMap.json");
       }
     } catch (const std::exception& e) {
       // Handle parsing errors
-      house_room_detail_map = nlohmann::json::object();
+      throw std::runtime_error(std::string("Error loading house room details: ") + e.what());
     }
   }
   return house_room_detail_map;

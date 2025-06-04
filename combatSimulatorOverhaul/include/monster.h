@@ -35,6 +35,10 @@ class Monster : public CombatUnit {
   // Setter for elite tier
   void set_elite_tier(int elite_tier) { elite_tier_ = elite_tier; }
   
+  // 允许访问abilities_
+  std::vector<std::shared_ptr<Ability>>& abilities() { return abilities_; }
+  const std::vector<std::shared_ptr<Ability>>& abilities() const { return abilities_; }
+  
  private:
   // Helper function to load monster detail data from JSON
   static nlohmann::json LoadCombatMonsterDetailMap();

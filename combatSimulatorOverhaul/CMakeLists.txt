@@ -3,25 +3,26 @@ project(CombatSimulator)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# 查找第三方库
-find_package(nlohmann_json 3.9.1 REQUIRED PATHS "lib")
-
 # 添加头文件路径
-include_directories(include)
+include_directories(include include/events lib)
 
 # 添加所有源文件
-file(GLOB SOURCES "src/*.cc")
+file(GLOB SOURCES "src/*.cc" "src/events/*.cc")
 
 # 添加可执行文件
 add_executable(combatsimulator ${SOURCES} test/test.cc)
 
-# 链接库
-target_link_libraries(combatsimulator PRIVATE nlohmann_json::nlohmann_json)
-
-# 复制数据文件到构建目录
-file(COPY data DESTINATION ${CMAKE_BINARY_DIR})
+# 复制数据文件到可执行文件目录
+add_custom_command(TARGET combatsimulator POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/data $<TARGET_FILE_DIR:combatsimulator>/data)
 
 # 添加测试可执行文件
-add_executable(event_queue_test test/test.cc src/event_queue.cc)
-target_link_libraries(event_queue_test PRIVATE nlohmann_json::nlohmann_json)
+add_executable(test_minimal test/test.cc src/player.cc src/combat_unit.cc src/ability.cc
+    src/consumable.cc src/equipment.cc src/house_room.cc src/trigger.cc src/buff.cc)
+
+# 为测试程序也复制数据文件
+add_custom_command(TARGET test_minimal POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/data $<TARGET_FILE_DIR:test_minimal>/data)
 

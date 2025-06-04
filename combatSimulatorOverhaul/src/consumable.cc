@@ -23,16 +23,16 @@ nlohmann::json Consumable::LoadItemDetailMap() {
   static nlohmann::json item_detail_map = nullptr;
   if (item_detail_map == nullptr) {
     try {
-      std::ifstream file("combatSimulatorOverhaul/data/itemDetailMap.json");
+      std::ifstream file("data/itemDetailMap.json");
       if (file.is_open()) {
         item_detail_map = nlohmann::json::parse(file);
       } else {
-        // Fallback if file not found
-        item_detail_map = nlohmann::json::object();
+        // Throw exception if file not found
+        throw std::runtime_error("Failed to open itemDetailMap.json");
       }
     } catch (const std::exception& e) {
-      // Handle parsing errors
-      item_detail_map = nlohmann::json::object();
+      // Rethrow with more context
+      throw std::runtime_error(std::string("Error loading item details: ") + e.what());
     }
   }
   return item_detail_map;

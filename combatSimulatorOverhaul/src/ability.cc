@@ -23,17 +23,15 @@ namespace combat_simulator {
 nlohmann::json Ability::LoadAbilityDetailMap() {
   static nlohmann::json ability_detail_map = nullptr;
   if (ability_detail_map == nullptr) {
+    std::ifstream file("data/abilityDetailMap.json");
+    if (!file.is_open()) {
+      throw std::runtime_error("Failed to open ability detail map file: data/abilityDetailMap.json");
+    }
+    
     try {
-      std::ifstream file("combatSimulatorOverhaul/data/abilityDetailMap.json");
-      if (file.is_open()) {
-        ability_detail_map = nlohmann::json::parse(file);
-      } else {
-        // Fallback if file not found
-        ability_detail_map = nlohmann::json::object();
-      }
-    } catch (const std::exception& e) {
-      // Handle parsing errors
-      ability_detail_map = nlohmann::json::object();
+      ability_detail_map = nlohmann::json::parse(file);
+    } catch (const nlohmann::json::parse_error& e) {
+      throw std::runtime_error("Failed to parse ability detail map file: " + std::string(e.what()));
     }
   }
   return ability_detail_map;

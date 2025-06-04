@@ -105,6 +105,7 @@ double CombatUtilities::CalculateHealingExperience(double healed) {
 
 CombatUtilities::AttackResult CombatUtilities::ProcessAttack(
     CombatUnit& source, CombatUnit& target, const AbilityEffect* ability_effect) {
+  CombatUtilities::AttackResult result;
   // 1. 确定战斗风格和伤害类型
   std::string combat_style = ability_effect ? ability_effect->combat_style_hrid : source.combat_details().combat_stats.combat_style_hrid;
   std::string damage_type = ability_effect ? ability_effect->damage_type : source.combat_details().combat_stats.damage_type;
@@ -258,15 +259,29 @@ CombatUtilities::AttackResult CombatUtilities::ProcessAttack(
   if (!ability_effect && did_hit && source.combat_details().combat_stats.mana_leech > 0) {
     mana_leech_mana = static_cast<int>(source.AddManapoints(std::floor(source.combat_details().combat_stats.mana_leech * damage_done)));
   }
-  // 经验相关略，可后续补充
-  AttackResult result;
-  result.damage_done = damage_done;
-  result.did_hit = did_hit;
-  result.reflect_damage_done = reflect_damage_done;
-  result.thorn_type = thorn_type;
-  result.life_steal_heal = life_steal_heal;
-  result.hp_drain = hp_drain;
-  result.mana_leech_mana = mana_leech_mana;
+  // 经验相关
+  if (did_hit) {
+    double damage_prevented = max_premitigated_damage - damage_done;
+    if (damage_prevented < 0) damage_prevented = 0;
+    if (combat_style == "/combat_styles/stab" || combat_style == "/combat_styles/slash" || combat_style == "/combat_styles/smash") {
+      result.experience_gained_source["attack"] = CalculateAttackExperience(damage_done, damage_prevented, combat_style);
+      result.experience_gained_source["power"] = CalculatePowerExperience(damage_done, damage_prevented, combat_style);
+    } else if (combat_style == "/combat_styles/ranged") {
+      result.experience_gained_source["ranged"] = CalculateRangedExperience(damage_done, damage_prevented);
+    } else if (combat_style == "/combat_styles/magic") {
+      result.experience_gained_source["magic"] = CalculateMagicExperience(damage_done, damage_prevented);
+    }
+    result.experience_gained_target["defense"] = CalculateDefenseExperience(damage_prevented);
+    result.experience_gained_target["stamina"] = CalculateStaminaExperience(damage_prevented, damage_done);
+    // Reflect damage experience
+    if (reflect_damage_done > 0) {
+      double reflect_damage_prevented = reflect_damage - reflect_damage_done;
+      if (reflect_damage_prevented < 0) reflect_damage_prevented = 0;
+      result.experience_gained_target["defense"] += CalculateDefenseExperience(mitigated_reflect_damage);
+      result.experience_gained_source["defense"] = CalculateDefenseExperience(reflect_damage_prevented);
+      result.experience_gained_source["stamina"] = CalculateStaminaExperience(reflect_damage_prevented, reflect_damage_done);
+    }
+  }
   return result;
 }
 

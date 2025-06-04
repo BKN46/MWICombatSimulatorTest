@@ -61,6 +61,18 @@ class CombatSimulator {
     const std::vector<std::shared_ptr<CombatUnit>>& friendlies,
     const std::vector<std::shared_ptr<CombatUnit>>& enemies);
 
+  void StartAttacks();
+
+  // 能否释放技能
+  bool CanUseAbility(const std::shared_ptr<CombatUnit>& source, const std::shared_ptr<Ability>& ability, bool check_oom);
+  // 技能效果分发
+  void ProcessAbilityBuffEffect(std::shared_ptr<CombatUnit> source, std::shared_ptr<Ability> ability, const AbilityEffect& effect);
+  void ProcessAbilityDamageEffect(std::shared_ptr<CombatUnit> source, std::shared_ptr<Ability> ability, const AbilityEffect& effect);
+  void ProcessAbilityHealEffect(std::shared_ptr<CombatUnit> source, std::shared_ptr<Ability> ability, const AbilityEffect& effect);
+  void ProcessAbilityReviveEffect(std::shared_ptr<CombatUnit> source, std::shared_ptr<Ability> ability, const AbilityEffect& effect);
+  void ProcessAbilityPromoteEffect(std::shared_ptr<CombatUnit> source, std::shared_ptr<Ability> ability, const AbilityEffect& effect);
+  void ProcessAbilitySpendHpEffect(std::shared_ptr<CombatUnit> source, std::shared_ptr<Ability> ability, const AbilityEffect& effect);
+
   // 主要成员
   std::vector<std::shared_ptr<Player>> players_;
   std::vector<std::shared_ptr<Monster>> enemies_;

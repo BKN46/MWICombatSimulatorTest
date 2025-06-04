@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <vector>
+#include <unordered_map>
 #include "combat_unit.h"
 #include "ability.h"
 
@@ -28,7 +29,9 @@ class CombatUtilities {
     int life_steal_heal = 0;
     int hp_drain = 0;
     int mana_leech_mana = 0;
-    // Experience fields can be added as needed
+    // Experience fields for source and target
+    std::unordered_map<std::string, double> experience_gained_source;
+    std::unordered_map<std::string, double> experience_gained_target;
   };
   static AttackResult ProcessAttack(CombatUnit& source, CombatUnit& target, const AbilityEffect* ability_effect = nullptr);
 
